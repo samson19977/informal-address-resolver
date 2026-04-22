@@ -12,4 +12,3 @@
 
 ---
 Samson Niyizurugero
-*Signed.*
