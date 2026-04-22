@@ -2,7 +2,7 @@
 resolver.py
 ===========
 Informal Address Resolver — AIMS KTT Hackathon · T1.2
-Author : candidate
+Author : Samson Niyizurugero
 Licence: MIT
 
 Architecture
