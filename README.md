@@ -18,7 +18,7 @@ tags:
   - logistics
 ---
 
-# 📍 Informal Address Resolver
+#  Informal Address Resolver
 
 **T1.2 · LogiTech · Text Processing · Geospatial**
 
@@ -27,7 +27,7 @@ Converts noisy multilingual delivery address descriptions into GPS coordinates �
 ---
 
 
-## 🏗️ Repository Structure
+##  Repository Structure
 
 ```
 informal-address-resolver/
@@ -57,7 +57,7 @@ informal-address-resolver/
 
 ---
 
-## 🔧 Public API
+##  Public API
 
 ```python
 from resolver import resolve
@@ -93,7 +93,7 @@ result = resolve("derrière la pharmacie bright kabale")
 
 ---
 
-## 📊 Evaluation Results
+##  Evaluation Results
 
 Run `python eval_notebook_builder.py && jupyter nbconvert --to notebook --execute notebooks/eval.ipynb` to reproduce.
 
@@ -107,7 +107,7 @@ Run `python eval_notebook_builder.py && jupyter nbconvert --to notebook --execut
 
 ---
 
-## 🛠️ System Design
+##  System Design
 
 ```
 text → normalise → detect_language → extract_candidates (fuzzy match)
@@ -123,7 +123,7 @@ text → normalise → detect_language → extract_candidates (fuzzy match)
 
 ---
 
-## 🧪 Running Tests
+##  Running Tests
 
 ```bash
 python -m pytest tests/ -v
@@ -135,7 +135,7 @@ python tests/test_resolver.py
 
 ---
 
-## 📄 License
+##  License
 
 MIT — see `LICENSE` file.
 
