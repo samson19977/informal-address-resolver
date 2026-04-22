@@ -1,6 +1,6 @@
 # SIGNED.md
 
-**Full Name:** Samson Niyizurugero]  
+**Full Name:** Samson Niyizurugero
 **Date:** 22/04/2025  
 **Challenge:** T1.2 · Informal Address Resolver · AIMS KTT Hackathon
 
