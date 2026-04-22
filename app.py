@@ -345,7 +345,7 @@ HEADER_HTML = """
 </div>
 """
 
-with gr.Blocks(title="Informal Address Resolver") as demo:
+with gr.Blocks(title="Informal Address Resolver", css=CSS) as demo:
     gr.HTML(HEADER_HTML)
 
     with gr.Tabs():
@@ -478,4 +478,4 @@ Output: { lat, lon, confidence, matched_landmark, rationale, escalate, language,
             """)
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860, css=CSS)
+    demo.launch(server_name="0.0.0.0", server_port=7860)
