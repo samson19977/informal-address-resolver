@@ -20,7 +20,7 @@ tags:
 
 # 📍 Informal Address Resolver
 
-**AIMS KTT Hackathon · T1.2 · LogiTech · Text Processing · Geospatial**
+**T1.2 · LogiTech · Text Processing · Geospatial**
 
 Converts noisy multilingual delivery address descriptions into GPS coordinates — fully offline, CPU-only, < 100 ms per query.
 
