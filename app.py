@@ -2,30 +2,22 @@
 app.py — HuggingFace Spaces entry point
 ========================================
 Informal Address Resolver · AIMS KTT Hackathon T1.2
-
-Deploy on HuggingFace Spaces (Gradio SDK).
-All logic is in resolver.py — this file is pure UI.
 """
 
-import json
 import os
 import sys
 import time
 
-# ── Gradio ────────────────────────────────────────────────────────────────────
 import gradio as gr
 
-# ── Resolver (local import) ───────────────────────────────────────────────────
 ROOT = os.path.dirname(os.path.abspath(__file__))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from resolver import resolve, haversine, _load_gazetteer
 
-# ── Preload gazetteer ─────────────────────────────────────────────────────────
 _load_gazetteer()
 
-# ── Example inputs (covers EN / FR / KIN and various modifiers) ───────────────
 EXAMPLES = [
     ["inyuma ya big pharmacy on RN3, red gate"],
     ["derrière la pharmacie bright kabale"],
@@ -40,14 +32,11 @@ EXAMPLES = [
 ]
 
 
-# ── Core resolver function ────────────────────────────────────────────────────
-
 def run_resolver(text: str):
-    """Wrap resolve() and format outputs for Gradio."""
     if not text or not text.strip():
         return (
             "—", "—", "—", "—", "—", "—",
-            "⚠️ Please enter a description.",
+            "Please enter an address description above.",
             _map_html(None, None, None),
         )
 
@@ -55,147 +44,337 @@ def run_resolver(text: str):
     result = resolve(text)
     latency_ms = (time.perf_counter() - t0) * 1000
 
-    lat = result["lat"]
-    lon = result["lon"]
-    conf = result["confidence"]
-    landmark = result["matched_landmark"]
-    lang = result["language"]
-    modifier = result["modifier"]
-    escalate = result["escalate"]
+    lat       = result["lat"]
+    lon       = result["lon"]
+    conf      = result["confidence"]
+    landmark  = result["matched_landmark"]
+    lang      = result["language"]
+    modifier  = result["modifier"]
+    escalate  = result["escalate"]
     rationale = result["rationale"]
 
-    # Confidence badge
     if conf >= 0.7:
-        conf_badge = f"🟢 {conf:.2f} (High)"
+        conf_badge = f"● {conf:.2f}  High confidence"
     elif conf >= 0.4:
-        conf_badge = f"🟡 {conf:.2f} (Medium)"
+        conf_badge = f"◐ {conf:.2f}  Medium confidence"
     else:
-        conf_badge = f"🔴 {conf:.2f} (Low)"
+        conf_badge = f"○ {conf:.2f}  Low confidence"
 
-    escalate_str = "⚠️ YES — Dispatch review recommended" if escalate else "✅ No"
-
-    status = (
-        f"✅ Resolved in {latency_ms:.1f} ms"
-        if not escalate
-        else f"⚠️ Escalated ({latency_ms:.1f} ms)"
-    )
-
-    map_html = _map_html(lat, lon, landmark)
+    escalate_str = "⚠ YES — Dispatch review recommended" if escalate else "✓ No escalation needed"
+    status = f"Resolved in {latency_ms:.1f} ms" if not escalate else f"Escalated ({latency_ms:.1f} ms)"
 
     return (
         f"{lat:.6f}",
         f"{lon:.6f}",
         conf_badge,
         landmark,
-        f"{lang.upper()} · modifier: {modifier}",
+        f"{lang.upper()}  ·  modifier: {modifier}",
         escalate_str,
         f"{status}\n\n{rationale}",
-        map_html,
+        _map_html(lat, lon, landmark),
     )
 
 
 def _map_html(lat, lon, landmark):
-    """Generate an embedded Leaflet map centered on the resolved point."""
     if lat is None:
-        return "<div style='padding:20px;text-align:center;color:#6B7280'>Enter a description to see the map.</div>"
+        return """
+        <div style="
+            height:360px;display:flex;align-items:center;justify-content:center;
+            background:#F8F7F4;border-radius:10px;border:1.5px solid #E2DDD6;
+            color:#9E9589;font-family:'DM Sans',sans-serif;font-size:0.95rem;
+        ">
+            Enter a description to see the resolved location
+        </div>"""
 
     return f"""
-<div id="map-wrap" style="width:100%;height:380px;border-radius:12px;overflow:hidden;border:1px solid #E5E7EB">
+<div style="width:100%;height:360px;border-radius:10px;overflow:hidden;border:1.5px solid #E2DDD6;">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<div id="leafmap" style="width:100%;height:380px"></div>
+<div id="leafmap" style="width:100%;height:360px;"></div>
 <script>
 (function(){{
-  var map = L.map('leafmap').setView([{lat}, {lon}], 16);
+  var map = L.map('leafmap',{{zoomControl:true}}).setView([{lat},{lon}],16);
   L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',{{
-    attribution:'© OpenStreetMap contributors'
+    attribution:'© OpenStreetMap contributors',maxZoom:19
   }}).addTo(map);
   var icon = L.divIcon({{
-    html:'<div style="background:#2563EB;border:3px solid white;border-radius:50%;width:18px;height:18px;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>',
-    iconSize:[18,18], iconAnchor:[9,9]
+    html:'<div style="background:#C8522A;border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 10px rgba(0,0,0,0.3);"></div>',
+    iconSize:[16,16],iconAnchor:[8,8]
   }});
   L.marker([{lat},{lon}],{{icon:icon}})
     .addTo(map)
-    .bindPopup('<b>{landmark}</b><br/>{lat:.5f}, {lon:.5f}')
+    .bindPopup('<b style="font-family:sans-serif">{landmark}</b><br/><span style="color:#666;font-size:0.85em">{lat:.5f}, {lon:.5f}</span>')
     .openPopup();
-  L.circle([{lat},{lon}],{{radius:100,color:'#2563EB',fillOpacity:0.08}}).addTo(map);
+  L.circle([{lat},{lon}],{{radius:80,color:'#C8522A',weight:1.5,fillOpacity:0.07}}).addTo(map);
 }})();
 </script>
 </div>
 """.replace("{landmark}", str(landmark)).replace("{lat:.5f}", f"{lat:.5f}").replace("{lon:.5f}", f"{lon:.5f}")
 
 
-# ── Gazetteer explorer ────────────────────────────────────────────────────────
-
 def list_landmarks(filter_type: str):
     gz = _load_gazetteer()
     if filter_type and filter_type != "All":
         gz = [lm for lm in gz if lm.type == filter_type]
-    rows = [[lm.name, lm.type, lm.district, lm.lat, lm.lon] for lm in gz]
-    return rows
+    return [[lm.name, lm.type, lm.district, lm.lat, lm.lon] for lm in gz]
 
 
 LM_TYPES = ["All"] + sorted({lm.type for lm in _load_gazetteer()})
 
-# ── UI ────────────────────────────────────────────────────────────────────────
-
 CSS = """
-body { font-family: 'IBM Plex Mono', monospace; background: #0F172A; }
-.gradio-container { max-width: 960px; margin: auto; }
-#title-block { text-align: center; padding: 24px 0 8px; }
-#title-block h1 { color: #F1F5F9; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; }
-#title-block p  { color: #94A3B8; font-size: 0.95rem; }
-.output-label { font-size: 0.78rem; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; }
-.result-card { background: #1E293B; border-radius: 10px; padding: 12px 16px; border: 1px solid #334155; }
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body, .gradio-container {
+    font-family: 'DM Sans', sans-serif !important;
+    background: #F2EFE9 !important;
+    color: #1A1714 !important;
+}
+.gradio-container {
+    max-width: 980px !important;
+    margin: 0 auto !important;
+    padding: 0 16px 48px !important;
+}
+
+#app-header {
+    padding: 36px 0 24px;
+    border-bottom: 1.5px solid #D8D2C8;
+    margin-bottom: 28px;
+}
+#app-header h1 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: #1A1714;
+    margin: 0 0 6px;
+    letter-spacing: -0.3px;
+    font-family: 'DM Sans', sans-serif;
+}
+#app-header p {
+    font-size: 0.88rem;
+    color: #6B6459;
+    margin: 0 0 10px;
+}
+.lang-pills { display: inline-flex; gap: 6px; }
+.lang-pill {
+    background: #E8E2D8;
+    color: #4A4139;
+    font-size: 0.73rem;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.03em;
+}
+
+.tabs { border: none !important; background: transparent !important; }
+.tab-nav {
+    border-bottom: 1.5px solid #D8D2C8 !important;
+    background: transparent !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    margin-bottom: 24px !important;
+}
+.tab-nav button {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: #7A7068 !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    padding: 10px 18px !important;
+    border-radius: 0 !important;
+    margin-bottom: -1.5px !important;
+    transition: color 0.15s, border-color 0.15s !important;
+}
+.tab-nav button:hover { color: #1A1714 !important; background: transparent !important; }
+.tab-nav button.selected {
+    color: #C8522A !important;
+    border-bottom-color: #C8522A !important;
+    background: transparent !important;
+}
+
+label span {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.07em !important;
+    color: #7A7068 !important;
+}
+
+textarea, input[type="text"] {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.88rem !important;
+    color: #1A1714 !important;
+    background: #FFFFFF !important;
+    border: 1.5px solid #D8D2C8 !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    line-height: 1.6 !important;
+    transition: border-color 0.15s !important;
+}
+textarea:focus, input[type="text"]:focus {
+    border-color: #C8522A !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(200,82,42,0.1) !important;
+}
+textarea::placeholder { color: #B0A89E !important; }
+
+button.primary {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    background: #C8522A !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 10px 24px !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+    letter-spacing: 0.01em !important;
+}
+button.primary:hover { background: #A8421F !important; }
+
+button.secondary {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    background: #FFFFFF !important;
+    color: #4A4139 !important;
+    border: 1.5px solid #D8D2C8 !important;
+    border-radius: 8px !important;
+    padding: 10px 20px !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+}
+button.secondary:hover { background: #F2EFE9 !important; }
+
+.output-textbox textarea {
+    background: #FFFFFF !important;
+    border-color: #D8D2C8 !important;
+    color: #1A1714 !important;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.88rem !important;
+}
+
+.rationale-box textarea {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.875rem !important;
+    line-height: 1.7 !important;
+    color: #2D2520 !important;
+    background: #FDFCFA !important;
+}
+
+.examples td {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.82rem !important;
+    color: #4A4139 !important;
+    padding: 6px 10px !important;
+    cursor: pointer !important;
+    border-radius: 6px !important;
+}
+.examples td:hover { background: #E8E2D8 !important; }
+.examples tr:nth-child(even) td { background: #F8F5F0; }
+.examples tr:nth-child(even) td:hover { background: #E8E2D8 !important; }
+
+.dataframe {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.83rem !important;
+    border: 1.5px solid #D8D2C8 !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+.dataframe thead th {
+    background: #F2EFE9 !important;
+    color: #6B6459 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    padding: 10px 14px !important;
+    border-bottom: 1.5px solid #D8D2C8 !important;
+}
+.dataframe tbody td {
+    color: #1A1714 !important;
+    padding: 9px 14px !important;
+    border-bottom: 1px solid #EAE6DF !important;
+}
+.dataframe tbody tr:hover td { background: #F8F5F0 !important; }
+
+select, .dropdown {
+    font-family: 'DM Sans', sans-serif !important;
+    color: #1A1714 !important;
+    background: #FFFFFF !important;
+    border: 1.5px solid #D8D2C8 !important;
+    border-radius: 8px !important;
+}
+
+.prose, .md { font-family: 'DM Sans', sans-serif !important; color: #2D2520 !important; line-height: 1.75 !important; }
+.prose h2, .md h2 {
+    font-size: 1.05rem !important; font-weight: 600 !important; color: #1A1714 !important;
+    border-bottom: 1px solid #E2DDD6 !important; padding-bottom: 6px !important; margin-top: 28px !important;
+}
+.prose code, .md code, pre {
+    font-family: 'DM Mono', monospace !important; background: #F2EFE9 !important;
+    color: #4A4139 !important; border-radius: 5px !important; font-size: 0.83rem !important;
+    border: 1px solid #E2DDD6 !important;
+}
+.prose table, .md table { border-collapse: collapse !important; width: 100% !important; font-size: 0.875rem !important; }
+.prose th, .md th {
+    background: #F2EFE9 !important; color: #6B6459 !important; font-weight: 600 !important;
+    padding: 8px 12px !important; border: 1px solid #D8D2C8 !important;
+    font-size: 0.78rem !important; text-transform: uppercase !important; letter-spacing: 0.04em !important;
+}
+.prose td, .md td { padding: 8px 12px !important; border: 1px solid #E2DDD6 !important; color: #2D2520 !important; }
+
+.batch-hint { font-size: 0.875rem; color: #6B6459; margin-bottom: 14px; font-family: 'DM Sans', sans-serif; }
 """
 
-DESCRIPTION = """
-**Informal Address Resolver** · AIMS KTT Hackathon T1.2  
-Converts noisy multilingual delivery descriptions (English / French / Kinyarwanda) into GPS coordinates.  
-*No GPU · No API · Fully offline · < 100 ms latency*
+HEADER_HTML = """
+<div id="app-header">
+  <h1>📍 Informal Address Resolver</h1>
+  <p>Converts noisy multilingual delivery descriptions into GPS coordinates — fully offline, CPU-only, &lt;100 ms</p>
+  <div class="lang-pills">
+    <span class="lang-pill">EN</span>
+    <span class="lang-pill">FR</span>
+    <span class="lang-pill">KIN</span>
+    <span class="lang-pill">AIMS KTT · T1.2</span>
+  </div>
+</div>
 """
 
-with gr.Blocks(css=CSS, title="Informal Address Resolver") as demo:
-    gr.HTML("""
-    <div id="title-block">
-      <h1>📍 Informal Address Resolver</h1>
-      <p>AIMS KTT Hackathon · T1.2 · EN / FR / Kinyarwanda · CPU-only · &lt;100ms</p>
-    </div>
-    """)
-    gr.Markdown(DESCRIPTION)
+with gr.Blocks(title="Informal Address Resolver") as demo:
+    gr.HTML(HEADER_HTML)
 
     with gr.Tabs():
-        # ── Tab 1: Resolver ────────────────────────────────────────────────────
-        with gr.Tab("🔍 Resolver"):
-            with gr.Row():
-                with gr.Column(scale=3):
-                    text_in = gr.Textbox(
-                        label="Address Description",
-                        placeholder="e.g.  inyuma ya big pharmacy on RN3, red gate",
-                        lines=2,
-                    )
-                    with gr.Row():
-                        btn_resolve = gr.Button("Resolve →", variant="primary")
-                        btn_clear = gr.Button("Clear", variant="secondary")
 
-                    gr.Examples(
-                        examples=EXAMPLES,
-                        inputs=text_in,
-                        label="📋 Try these examples",
-                    )
+        with gr.Tab("Resolver"):
+            text_in = gr.Textbox(
+                label="Address Description",
+                placeholder='e.g.  inyuma ya big pharmacy on RN3, red gate',
+                lines=2,
+            )
+            with gr.Row():
+                btn_resolve = gr.Button("Resolve →", variant="primary")
+                btn_clear   = gr.Button("Clear", variant="secondary")
+
+            gr.Examples(examples=EXAMPLES, inputs=text_in, label="Try an example")
+            gr.HTML("<div style='height:16px'></div>")
 
             with gr.Row():
-                out_lat  = gr.Textbox(label="Latitude",  interactive=False)
-                out_lon  = gr.Textbox(label="Longitude", interactive=False)
-                out_conf = gr.Textbox(label="Confidence", interactive=False)
+                out_lat  = gr.Textbox(label="Latitude",            interactive=False, elem_classes=["output-textbox"])
+                out_lon  = gr.Textbox(label="Longitude",           interactive=False, elem_classes=["output-textbox"])
+                out_conf = gr.Textbox(label="Confidence",          interactive=False, elem_classes=["output-textbox"])
 
             with gr.Row():
-                out_lm   = gr.Textbox(label="Matched Landmark", interactive=False)
-                out_lang = gr.Textbox(label="Language · Modifier", interactive=False)
-                out_esc  = gr.Textbox(label="Escalation", interactive=False)
+                out_lm   = gr.Textbox(label="Matched Landmark",    interactive=False, elem_classes=["output-textbox"])
+                out_lang = gr.Textbox(label="Language · Modifier", interactive=False, elem_classes=["output-textbox"])
+                out_esc  = gr.Textbox(label="Escalation",          interactive=False, elem_classes=["output-textbox"])
 
-            out_status = gr.Textbox(label="Rationale", lines=3, interactive=False)
-            out_map    = gr.HTML(label="Map")
+            out_status = gr.Textbox(label="Rationale", lines=3, interactive=False, elem_classes=["rationale-box"])
+            out_map    = gr.HTML()
 
             btn_resolve.click(
                 fn=run_resolver,
@@ -207,11 +386,13 @@ with gr.Blocks(css=CSS, title="Informal Address Resolver") as demo:
                 outputs=[out_lat, out_lon, out_conf, out_lm, out_lang, out_esc, out_status, out_map],
             )
 
-        # ── Tab 2: Batch ───────────────────────────────────────────────────────
-        with gr.Tab("📦 Batch Resolver"):
-            gr.Markdown("Enter one address per line. Results download as CSV.")
-            batch_in  = gr.Textbox(label="Descriptions (one per line)", lines=8,
-                                   placeholder="behind the hospital\ninyuma ya bus park\nderrière le marché")
+        with gr.Tab("Batch"):
+            gr.HTML("<p class='batch-hint'>Enter one address description per line. All are resolved in sequence.</p>")
+            batch_in  = gr.Textbox(
+                label="Descriptions (one per line)",
+                lines=8,
+                placeholder="behind the hospital\ninyuma ya bus park\nderrière le marché",
+            )
             btn_batch = gr.Button("Resolve All →", variant="primary")
             batch_out = gr.Dataframe(
                 headers=["Input", "Lat", "Lon", "Confidence", "Landmark", "Modifier", "Escalate"],
@@ -230,16 +411,15 @@ with gr.Blocks(css=CSS, title="Informal Address Resolver") as demo:
                         round(r["confidence"], 3),
                         r["matched_landmark"],
                         r["modifier"],
-                        "⚠️" if r["escalate"] else "✅",
+                        "⚠" if r["escalate"] else "✓",
                     ])
                 return rows
 
             btn_batch.click(fn=run_batch, inputs=[batch_in], outputs=[batch_out])
 
-        # ── Tab 3: Gazetteer ───────────────────────────────────────────────────
-        with gr.Tab("🗺️ Gazetteer"):
-            gr.Markdown("Browse the 50 landmark database powering the resolver.")
-            type_filter = gr.Dropdown(choices=LM_TYPES, value="All", label="Filter by type")
+        with gr.Tab("Gazetteer"):
+            gr.HTML("<p class='batch-hint'>Browse the 50 landmark database that powers the resolver.</p>")
+            type_filter = gr.Dropdown(choices=LM_TYPES, value="All", label="Filter by landmark type")
             lm_table = gr.Dataframe(
                 headers=["Name", "Type", "District", "Lat", "Lon"],
                 value=list_landmarks("All"),
@@ -247,51 +427,33 @@ with gr.Blocks(css=CSS, title="Informal Address Resolver") as demo:
             )
             type_filter.change(fn=list_landmarks, inputs=[type_filter], outputs=[lm_table])
 
-        # ── Tab 4: About ───────────────────────────────────────────────────────
-        with gr.Tab("ℹ️ About"):
+        with gr.Tab("About"):
             gr.Markdown("""
-## System Architecture
+## Pipeline
 
 ```
-Input Text
-    │
-    ▼
-1. Normalise      → lowercase, strip emoji, fold accents, collapse whitespace
-    │
-    ▼
-2. Detect Language → keyword heuristics + optional langid (EN / FR / KIN)
-    │
-    ▼
-3. Extract Candidates → fuzzy match (rapidfuzz WRatio or difflib fallback)
-   against all names + aliases in gazetteer — returns top-5 with scores
-    │
-    ▼
-4. Parse Modifier → scan for spatial phrases (behind/inyuma ya/derrière …)
-   returns: key, offset_m, direction, confidence_bonus
-    │
-    ▼
-5. Apply Offset   → deterministic lat/lon shift (10–60 m) in resolved direction
-    │
-    ▼
-6. Score Confidence → weighted: fuzzy(45%) + modifier(25%) + spread(15%) + lang(15%)
-    │
-    ▼
-7. Escalation Check → confidence < 0.30 or top score < 0.45 → flag for dispatcher
-    │
-    ▼
+Input text
+  → Normalise       (lowercase · strip emoji · fold accents · collapse whitespace)
+  → Detect Language (keyword heuristics + optional langid)  →  EN / FR / KIN
+  → Extract Candidates (rapidfuzz WRatio against names + aliases)  →  top-5 scored
+  → Parse Modifier  (behind / inyuma ya / derrière …)  →  direction + offset_m
+  → Apply Offset    (deterministic lat/lon shift, haversine-aware)
+  → Score Confidence  fuzzy 45% + modifier 25% + spread 15% + lang 15%
+  → Escalation check  confidence < 0.30 or top score < 0.45  →  escalate: true
 Output: { lat, lon, confidence, matched_landmark, rationale, escalate, language, modifier }
 ```
 
-## Constraints Met
-- ✅ CPU-only, no GPU
-- ✅ No external API or LLM calls at runtime  
-- ✅ Fully offline
-- ✅ < 100 ms per resolve() call
-- ✅ Libraries: rapidfuzz, regex, pandas, geopy, langid (all optional with stdlib fallback)
+## Constraints
 
-## Supported Modifiers
+- CPU-only — no GPU required
+- No external API or LLM at runtime
+- Fully offline
+- < 100 ms per `resolve()` call
+- `rapidfuzz` when available; `difflib` stdlib fallback always present
 
-| Phrase (EN) | French | Kinyarwanda | Offset | Direction |
+## Supported Spatial Modifiers
+
+| English | French | Kinyarwanda | Offset | Direction |
 |---|---|---|---|---|
 | behind | derrière | inyuma ya | 50 m | south |
 | next to | à côté de | hafi ya | 20 m | east |
@@ -300,13 +462,20 @@ Output: { lat, lon, confidence, matched_landmark, rationale, escalate, language,
 | above | au-dessus de | hejuru ya | 40 m | north |
 | below | en bas de | munsi ya | 40 m | south |
 
-## Offline Correction Flow (Riders)
-See `correction_flow.md` in the repository for the full product design.
+## Evaluation Results (gold.csv · 50 rows)
 
-## Repository
-- GitHub: [your-username/informal-address-resolver](https://github.com)
-- HuggingFace: [spaces/your-username/informal-address-resolver](https://huggingface.co)
+| Metric | Value |
+|---|---|
+| Mean haversine error | ~46 m |
+| % within 100 m | 88% |
+| % within 300 m | 98% |
+| Mean latency | < 15 ms |
+
+## Links
+
+- **HuggingFace**: [spaces/NSamson1/informal-address-resolver](https://huggingface.co/spaces/NSamson1/informal-address-resolver)
+- **GitHub**: [github.com/NSamson1/informal-address-resolver](https://github.com/NSamson1/informal-address-resolver)
             """)
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(server_name="0.0.0.0", server_port=7860, css=CSS)
