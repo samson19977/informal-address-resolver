@@ -407,7 +407,7 @@ if __name__ == "__main__":
             if name.startswith("test_"):
                 try:
                     getattr(obj, name)()
-                    print(f"  ✅ {cls.__name__}::{name}")
+                    print(f"   {cls.__name__}::{name}")
                     passed += 1
                 except Exception as e:
                     print(f"  ❌ {cls.__name__}::{name}: {e}")
