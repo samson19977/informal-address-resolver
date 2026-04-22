@@ -1,7 +1,7 @@
 """
 app.py — HuggingFace Spaces entry point
 ========================================
-Informal Address Resolver · AIMS KTT Hackathon T1.2
+Informal Address Resolver 
 """
 
 import os
