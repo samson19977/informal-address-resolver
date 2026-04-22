@@ -1,9 +1,8 @@
 # process_log.md — AIMS KTT Hackathon · T1.2
 
-**Candidate:** [Your Full Name]  
+**Candidate:** Samson Niyizurugero  
 **Challenge:** T1.2 · Informal Address Resolver  
-**Date:** [Submission Date]  
-**Total time:** ~3h 45min (within 4-hour hard cap)
+**Date:** 22/04/2026  
 
 ---
 
