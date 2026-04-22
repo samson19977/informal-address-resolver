@@ -26,18 +26,6 @@ Converts noisy multilingual delivery address descriptions into GPS coordinates �
 
 ---
 
-## 🚀 Quick Start (Colab — 2 commands)
-
-```bash
-# 1. Clone and install
-git clone https://github.com/NSamson1/informal-address-resolver.git
-cd informal-address-resolver && pip install -r requirements.txt
-
-# 2. Generate data and run
-python generate_data.py && python -c "from resolver import resolve; import json; print(json.dumps(resolve(\"inyuma ya big pharmacy on RN3, red gate\"), indent=2))"
-```
-
----
 
 ## 🏗️ Repository Structure
 
