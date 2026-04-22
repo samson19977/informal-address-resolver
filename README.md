@@ -1,6 +1,5 @@
 ---
 title: Informal Address Resolver
-<<<<<<< HEAD
 emoji: 📍
 colorFrom: blue
 colorTo: indigo
@@ -31,14 +30,12 @@ Converts noisy multilingual delivery address descriptions into GPS coordinates �
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/YOUR_USERNAME/informal-address-resolver.git
+git clone https://github.com/NSamson1/informal-address-resolver.git
 cd informal-address-resolver && pip install -r requirements.txt
 
 # 2. Generate data and run
 python generate_data.py && python -c "from resolver import resolve; import json; print(json.dumps(resolve(\"inyuma ya big pharmacy on RN3, red gate\"), indent=2))"
 ```
-
-> Replace `YOUR_USERNAME` with your GitHub handle.
 
 ---
 
@@ -172,17 +169,5 @@ MIT — see `LICENSE` file.
 
 ## 🔗 Links
 
-- **HuggingFace Space**: [spaces/YOUR_USERNAME/informal-address-resolver](https://huggingface.co/spaces/YOUR_USERNAME/informal-address-resolver)
-- **GitHub**: [github.com/YOUR_USERNAME/informal-address-resolver](https://github.com/YOUR_USERNAME/informal-address-resolver)
-=======
-emoji: 📈
-colorFrom: indigo
-colorTo: blue
-sdk: gradio
-sdk_version: 6.13.0
-app_file: app.py
-pinned: false
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
->>>>>>> 596a5da596ca0567edeb4c364de931cc1319c741
+- **HuggingFace Space**: [spaces/NSamson1/informal-address-resolver](https://huggingface.co/spaces/NSamson1/informal-address-resolver)
+- **GitHub**: [github.com/NSamson1/informal-address-resolver](https://github.com/NSamson1/informal-address-resolver)
