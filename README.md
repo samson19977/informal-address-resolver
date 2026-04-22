@@ -135,20 +135,6 @@ text → normalise → detect_language → extract_candidates (fuzzy match)
 
 ---
 
-## 🏍️ Product Design — Offline Rider Corrections
-
-See [`correction_flow.md`](correction_flow.md) for the full design.
-
-**TL;DR:** 3-button UI (✅ Yes / ❌ No / ❓ IDK) → GPS capture on "No" → SQLite queue → batch sync when online → confidence-weighted conflict resolution. Data cost: ~8 MB/rider/month (~$0.03 USD). Cost per correction: < $0.10 vs $1.50–4.00 for paper.
-
----
-
-## ▶️ 4-Minute Demo Video
-
-[YouTube / Google Drive link — add before submission]
-
----
-
 ## 🧪 Running Tests
 
 ```bash
